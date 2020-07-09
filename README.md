@@ -7,6 +7,6 @@ I think the local repositories explain themselves.
 
 Here is what the model looks like as of 9/7/20:
 
-!image(./earth.png)
+!(./earth.png)
 
 
