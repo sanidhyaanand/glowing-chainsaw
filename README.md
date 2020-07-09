@@ -5,9 +5,15 @@ This repository is meant for handling all the code I have written on my journey 
 You will find a well written Makefile which probably does not work.  
 I think the local repositories explain themselves.
 
+# Future Plans
+Future plans for this project include:
+1. Finding an appropriate mesh for **terrain generation**. Little mini project I am super excited about.
+2. Implementing Mie and Rayleigh scattering for SkyfromSky shading.
+
 Here is what the model looks like as of 9/7/20:
 
 ![](Earth.png)
+
 ![](Earth_alt.png)
 
 
