@@ -5,6 +5,5 @@ This repository is meant for handling all the code I have written on my journey 
 You will find a well written Makefile which probably does not work.  
 I think the local repositories explain themselves, with the exception of _Planets_
 
-## Planets
-Planets contains code for rendering an Earth like planet using OpenGL 4.1, GLFW 3.3 and GLEW 2.1.0. As of 4/6/2020, there is only a planet with some earth textures applied, and only ShadingFromSpace completed.
+
 
