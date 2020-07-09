@@ -1,0 +1,6 @@
+	"Images/skybox_s/right.jpg",
+	"Images/skybox_s/left.jpg",
+	"Images/skybox_s/top.jpg",
+	"Images/skybox_s/bottom.jpg",
+	"Images/skybox_s/front.jpg",
+	"Images/skybox_s/back.jpg"
