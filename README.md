@@ -16,4 +16,7 @@ Here is what the model looks like as of 9/7/20:
 
 ![](Earth_alt.png)
 
-
+Bin: .exe files outputted after running make end up here
+Images: All images used in the .cpp files are stored here. Skyboxes are stored in batches of six in individual folders.
+Shaders: Contains all the shaders used to render.
+utility: Contains header files for camera, shader, texture and skybox functions and their individual dependencies.
