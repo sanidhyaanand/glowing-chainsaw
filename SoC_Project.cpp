@@ -13,7 +13,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 
-
+// declaring utility functions
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -29,18 +29,22 @@ int tesselation = 100;
 bool wireframe = false;
 bool wireKeyPressed = false;
 
-double PI = 3.14159;
+// value of PI
+float PI = 3.14159;
 
+// 1/wav for RGB
 glm::vec3 lambda = glm::vec3(0.670, 0.540, 0.440);
 
-//6 faces, 2 triangles/face, 3 vertices/triangle
-const int num_vertices = 8000;
+// 6 faces, 2 triangles/face, 3 vertices/triangle
+const int num_vertices = 20000;
 
+// sphere variables
 int tri_idx = 0;
 glm::vec4 v_positions[num_vertices];
 glm::vec4 v_colors[num_vertices];
 glm::vec4 v_normals[num_vertices];
 
+// for atmos
 glm::vec4 v_positions_a[num_vertices];
 
 // Variables for wireframe
@@ -53,24 +57,26 @@ glm::vec4 color(0.6, 0.6, 0.6, 1.0);
 glm::vec4 black(0.2, 0.2, 0.2, 1.0);
 glm::vec4 white(1.0, 1.0, 1.0, 1.0);
 
-double Radius = 2000;
+// Radius of Earth
+float Radius = 5000;
 
-float Kr = 0.0025;
-float ESun = 15.0;
-float Km = 0.0010;
-float g = -0.990;
-float radiusRatio = 1.05;
+// Parameters for atmosphere
+float Kr = 0.0025; // Rayleigh constant    
+float ESun = 15.0; // Brightness constant
+float Km = 0.0010; // Mie constant
+float g = -0.990; 
+float radiusRatio = 1.015; 
 float fInnerRadius = Radius;
 float fOuterRadius = float(Radius * radiusRatio);
 float fScale = float(1 / (fOuterRadius - fInnerRadius));
-float sunAngle = 0.0;
+float sunAngle = 0.0; // For rotation of light source
 
-int prev_tess = 30;
+int prev_tess = 30; // no clue
 int Lat = 10;
 int Long = 10;
 
 // camera
-Camera camera(glm::vec3(Radius, 0.0f, Radius));
+Camera camera(glm::vec3(Radius, 0.0f, Radius)); // Initial position of camera
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -108,20 +114,20 @@ int main()
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-
     glewExperimental = GL_TRUE;
     glewInit();
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     // build and compile shaders
     // -------------------------
     glm::vec3 planetPos = glm::vec3(0.0, 0.0, 0.0);
 
-    Shader atmosShader("Shaders/SkyFromSpace.vs", "Shaders/SkyFromSpace.fs");
-    Shader groundShader("Shaders/GroundFromSpace.vs", "Shaders/GroundFromSpace.fs");
+    Shader atmosShader("Sphere_Shaders/SkyFromSpace.vs", "Sphere_Shaders/SkyFromSpace.fs");
+    Shader groundShader("Sphere_Shaders/GroundFromSpace.vs", "Sphere_Shaders/GroundFromSpace.fs");
     Shader skyboxShader("Shaders/skyboxshad.vs", "Shaders/skyboxshad.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -196,6 +202,16 @@ int main()
         "Images/earth_s/nez.png"
     };
 
+    std::vector<std::string> facesc
+    {
+        "Images/earth_clouds/px.png",
+        "Images/earth_clouds/nx.png",
+        "Images/earth_clouds/py.png",
+        "Images/earth_clouds/ny.png",
+        "Images/earth_clouds/pz.png",
+        "Images/earth_clouds/nz.png"
+    };
+
     std::vector<std::string> faces_sky
     {
         "Images/lightblue/right.png",
@@ -209,11 +225,13 @@ int main()
     Skybox skybox(faces);
     Skybox skybox_n(facesn);    
     Skybox skybox_s(facesx);
+    Skybox skybox_c(facesc);
     
     groundShader.use();
     groundShader.setInt("tDiffuse", 0);
     groundShader.setInt("tDiffuseNight", 1);
     groundShader.setInt("tSpecular", 2);
+    groundShader.setInt("tDiffuseClouds", 3);
 
     Skybox skybox_sky(faces_sky);
 
@@ -229,7 +247,7 @@ int main()
     {
         // per frame time logic
         // --------------------
-        float currentframe = glfwGetTime();
+        float currentframe = float(glfwGetTime());
         deltatime = currentframe - lastframe;
         lastframe = currentframe;
 
@@ -247,7 +265,7 @@ int main()
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::mat4(1.0f);
-        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 10000.0f);
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20000.0f);
 
         // skybox
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -263,6 +281,7 @@ int main()
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
 
+        // Main planet
         groundShader.use();
 
         view = camera.GetViewMatrix();
@@ -286,7 +305,7 @@ int main()
         groundShader.setFloat("fScale", fScale);
         groundShader.setFloat("fScaleDepth", 0.25);
         groundShader.setFloat("fScaleOverScaleDepth", fScale / 0.25);
-        groundShader.setFloat("fNightScale", 0.8f);
+        groundShader.setFloat("fNightScale", 0.5f);
         groundShader.setVec3("dirLight.direction", glm::vec3(-1.0f * cos(sunAngle), 0.0f, -1.0f * sin(sunAngle)));
         groundShader.setVec3("dirLight.ambient", glm::vec3(1.0f, 1.0f, 1.0f));
         groundShader.setVec3("dirLight.diffuse", glm::vec3(1.0f, 1.0f, 1.0f));
@@ -300,6 +319,8 @@ int main()
         glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_n.cubemapTexture);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_s.cubemapTexture);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_c.cubemapTexture);
         glBindVertexArray(sphereVAO[0]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4900);
 
@@ -332,13 +353,12 @@ int main()
         atmosShader.setFloat("g2", g * g);
         atmosShader.setVec3("v3LightPos", glm::vec3(1.0f * cos(sunAngle), 0.0f, 1.0f * sin(sunAngle)));
 
-        glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
         glBindVertexArray(sphereVAO[2]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 6000);
-        glDisable(GL_CULL_FACE);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 19600);
+        glCullFace(GL_BACK);
         glDisable(GL_BLEND);
 
         glBindVertexArray(0);
@@ -513,8 +533,8 @@ void sphere_atmos(double radius, int Lats, int Longs)
     // float slices=float(Lats)/100;
     // float sectors=float(Longs)/100;
 
-    float slices_a = (180 / (float(Lats) * 10)) / 2;
-    float sectors_a = (180 / (float(Longs) * 10)) / 2;
+    float slices_a = (180 / (float(Lats) * 20)) / 2;
+    float sectors_a = (180 / (float(Longs) * 20)) / 2;
 
     float l;
     tri_idx = 0;
@@ -543,6 +563,7 @@ void sphere_atmos(double radius, int Lats, int Longs)
             tri_idx++;
         }
     }
+    std::cout << tri_idx;
 }
 
 
