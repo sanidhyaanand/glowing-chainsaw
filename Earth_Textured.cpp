@@ -108,7 +108,6 @@ int main()
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-
     glewExperimental = GL_TRUE;
     glewInit();
 
@@ -120,8 +119,8 @@ int main()
     // -------------------------
     glm::vec3 planetPos = glm::vec3(0.0, 0.0, 0.0);
 
-    Shader atmosShader("Shaders/SkyFromSpace.vs", "Shaders/SkyFromSpace.fs");
-    Shader groundShader("Shaders/GroundFromSpace.vs", "Shaders/GroundFromSpace.fs");
+    Shader atmosShader("Sphere_Shaders/SkyFromSpace.vs", "Sphere_Shaders/SkyFromSpace.fs");
+    Shader groundShader("Sphere_Shaders/GroundFromSpace.vs", "Sphere_Shaders/GroundFromSpace.fs");
     Shader skyboxShader("Shaders/skyboxshad.vs", "Shaders/skyboxshad.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes

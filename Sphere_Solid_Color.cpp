@@ -102,7 +102,7 @@ int main()
     // build and compile shaders
     // -------------------------
     Shader shader("Shaders/lightobjshad.vs", "Shaders/lightobjshad.fs");
-    Shader sphereShader("Shaders/sphereshader.vs", "Shaders/sphereshadercolor.fs");
+    Shader sphereShader("Sphere_Shaders/sphereshader.vs", "Sphere_Shaders/sphereshadercolor.fs");
     Shader lightShader("Shaders/lightshad.vs", "Shaders/lightshad.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes

@@ -3,10 +3,10 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include "utility/Texture.h"
 #include "utility/shader.h"
 #include "utility/skybox.h"
-#include <iostream>
 #include "utility/camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -62,7 +62,7 @@ float Radius = 5000;
 
 // Parameters for atmosphere
 float Kr = 0.0025; // Rayleigh constant    
-float ESun = 15.0; // Brightness constant
+float ESun = 20.0; // Brightness constant
 float Km = 0.0010; // Mie constant
 float g = -0.990; 
 float radiusRatio = 1.015; 
@@ -77,6 +77,8 @@ int Long = 10;
 
 // camera
 Camera camera(glm::vec3(Radius, 0.0f, Radius)); // Initial position of camera
+float cameraSpeed = 500.0f; // Choose speed relative to scale of project; default is 5.0f
+
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -167,10 +169,10 @@ int main()
     glEnableVertexAttribArray(vPositionAtmos);
     glVertexAttribPointer(vPositionAtmos, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    // skybox images for earth surface
     std::vector<std::string> faces
     {
         "Images/earth/px.png",
@@ -181,7 +183,7 @@ int main()
         "Images/earth/nz.png"
     };
 
-
+    // skybox images for earth at night
     std::vector<std::string> facesn
     {
         "Images/earth_night/px.jpg",
@@ -192,6 +194,7 @@ int main()
         "Images/earth_night/nz.jpg"
     };
 
+    // skybox images for specular texture
     std::vector<std::string> facesx
     {
         "Images/earth_s/pox.png",
@@ -202,6 +205,7 @@ int main()
         "Images/earth_s/nez.png"
     };
 
+    // skybox images for cloud cover texture
     std::vector<std::string> facesc
     {
         "Images/earth_clouds/px.png",
@@ -212,6 +216,7 @@ int main()
         "Images/earth_clouds/nz.png"
     };
 
+    // skybox images for space
     std::vector<std::string> faces_sky
     {
         "Images/lightblue/right.png",
@@ -222,16 +227,49 @@ int main()
         "Images/lightblue/back.png"
     };
 
+    // skybox objects from image containing vectors
     Skybox skybox(faces);
     Skybox skybox_n(facesn);    
     Skybox skybox_s(facesx);
     Skybox skybox_c(facesc);
     
+    // pass static uniforms to sphere shaders
     groundShader.use();
+
     groundShader.setInt("tDiffuse", 0);
     groundShader.setInt("tDiffuseNight", 1);
     groundShader.setInt("tSpecular", 2);
     groundShader.setInt("tDiffuseClouds", 3);
+
+    groundShader.setVec3("v3InvWavelength", glm::vec3(1 / pow(lambda.x, 4), 1 / pow(lambda.y, 4), 1 / pow(lambda.z, 4)));
+    groundShader.setFloat("fOuterRadius", fOuterRadius);
+    groundShader.setFloat("fOuterRadius2", fOuterRadius* fOuterRadius);
+    groundShader.setFloat("fInnerRadius", fInnerRadius);
+    groundShader.setFloat("fInnerRadius2", fInnerRadius* fInnerRadius);
+    groundShader.setFloat("fKrESun", (Kr * ESun));
+    groundShader.setFloat("fKr4PI", (Kr * 4 * PI));
+    groundShader.setFloat("fKm4PI", (Km * 4 * PI));
+    groundShader.setFloat("fScale", fScale);
+    groundShader.setFloat("fScaleDepth", 0.25);
+    groundShader.setFloat("fScaleOverScaleDepth", fScale / 0.25);
+    groundShader.setFloat("fNightScale", 1.0f);
+
+    // pass static uniforms to atmos shader
+    atmosShader.use();
+
+    atmosShader.setVec3("v3InvWavelength", glm::vec3(1 / pow(lambda.x, 4), 1 / pow(lambda.y, 4), 1 / pow(lambda.z, 4)));
+    atmosShader.setFloat("fOuterRadius", fOuterRadius);
+    atmosShader.setFloat("fOuterRadius2", fOuterRadius* fOuterRadius);
+    atmosShader.setFloat("fInnerRadius", fInnerRadius);
+    atmosShader.setFloat("fInnerRadius2", fInnerRadius* fInnerRadius);
+    atmosShader.setFloat("fKrESun", (Kr* ESun));
+    atmosShader.setFloat("fKr4PI", (Kr * 4 * PI));
+    atmosShader.setFloat("fKm4PI", (Km * 4 * PI));
+    atmosShader.setFloat("fScale", fScale);
+    atmosShader.setFloat("fScaleDepth", 0.25);
+    atmosShader.setFloat("fScaleOverScaleDepth", fScale / 0.25);
+    atmosShader.setFloat("g", g);
+    atmosShader.setFloat("g2", g * g);
 
     Skybox skybox_sky(faces_sky);
 
@@ -282,37 +320,30 @@ int main()
         glDepthFunc(GL_LESS); // set depth function back to default
 
         // Main planet
+        // ------------
         groundShader.use();
 
+        // Transformation to screen space
         view = camera.GetViewMatrix();
         groundShader.setMat4("view", view);
         groundShader.setMat4("projection", projection);
         groundShader.setMat4("model", model);
 
+        // pass dynamic uniforms to sphere shader
         groundShader.setVec3("v3CameraPos", camera.Position);
         groundShader.setVec3("v3LightDir", glm::vec3(-1.0f * cos(sunAngle), 0.0f, -1.0f * sin(sunAngle)));
-        groundShader.setVec3("v3InvWavelength", glm::vec3(1 / pow(lambda.x, 4), 1 / pow(lambda.y, 4), 1 / pow(lambda.z, 4)));
         groundShader.setVec3("planetPos", planetPos);
         groundShader.setFloat("fCameraHeight", length(camera.Position));
         groundShader.setFloat("fCameraHeight2", pow(length(camera.Position), 2));
-        groundShader.setFloat("fOuterRadius", fOuterRadius);
-        groundShader.setFloat("fOuterRadius2", fOuterRadius * fOuterRadius);
-        groundShader.setFloat("fInnerRadius", fInnerRadius);
-        groundShader.setFloat("fInnerRadius2", fInnerRadius * fInnerRadius);
-        groundShader.setFloat("fKrESun", (Kr * ESun));
-        groundShader.setFloat("fKr4PI", (Kr * 4 * PI));
-        groundShader.setFloat("fKm4PI", (Km * 4 * PI));
-        groundShader.setFloat("fScale", fScale);
-        groundShader.setFloat("fScaleDepth", 0.25);
-        groundShader.setFloat("fScaleOverScaleDepth", fScale / 0.25);
-        groundShader.setFloat("fNightScale", 0.5f);
+
         groundShader.setVec3("dirLight.direction", glm::vec3(-1.0f * cos(sunAngle), 0.0f, -1.0f * sin(sunAngle)));
         groundShader.setVec3("dirLight.ambient", glm::vec3(1.0f, 1.0f, 1.0f));
         groundShader.setVec3("dirLight.diffuse", glm::vec3(1.0f, 1.0f, 1.0f));
         groundShader.setVec3("dirLight.specular", glm::vec3(0.4f, 0.4f, 0.4f));
         groundShader.setVec3("viewPos", camera.Position);
         groundShader.setBool("blinn", blinn);
-      
+        
+        // render sphere model
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.cubemapTexture);
         glActiveTexture(GL_TEXTURE1);
@@ -326,33 +357,24 @@ int main()
 
 
         // atmosphere rendering
+        // ----------------------
         atmosShader.use();
         
+        // Transformation to screen space
         view = camera.GetViewMatrix();
         atmosShader.setMat4("view", view);
         atmosShader.setMat4("projection", projection);
         atmosShader.setMat4("model", model);
 
+        // pass dynamic uniforms to atmos shaders
         atmosShader.setVec3("v3CameraPos", camera.Position);
         atmosShader.setVec3("v3LightDir", glm::vec3(1.0f * cos(sunAngle), 0.0f, 1.0f * sin(sunAngle)));
-        atmosShader.setVec3("v3InvWavelength", glm::vec3(1 / pow(lambda.x, 4), 1 / pow(lambda.y, 4), 1 / pow(lambda.z, 4)));
         atmosShader.setVec3("planetPos", planetPos);
         atmosShader.setFloat("fCameraHeight", length(camera.Position));
         atmosShader.setFloat("fCameraHeight2", pow(length(camera.Position), 2));
-        atmosShader.setFloat("fOuterRadius", fOuterRadius);
-        atmosShader.setFloat("fOuterRadius2", fOuterRadius * fOuterRadius);
-        atmosShader.setFloat("fInnerRadius", fInnerRadius);
-        atmosShader.setFloat("fInnerRadius2", fInnerRadius * fInnerRadius);
-        atmosShader.setFloat("fKrESun", (Kr * ESun));
-        atmosShader.setFloat("fKr4PI", (Kr * 4 * PI));
-        atmosShader.setFloat("fKm4PI", (Km * 4 * PI));
-        atmosShader.setFloat("fScale", fScale);
-        atmosShader.setFloat("fScaleDepth", 0.25);
-        atmosShader.setFloat("fScaleOverScaleDepth", fScale / 0.25);
-        atmosShader.setFloat("g", g);
-        atmosShader.setFloat("g2", g * g);
         atmosShader.setVec3("v3LightPos", glm::vec3(1.0f * cos(sunAngle), 0.0f, 1.0f * sin(sunAngle)));
 
+        // render atmosphere model
         glCullFace(GL_FRONT);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
@@ -363,7 +385,7 @@ int main()
 
         glBindVertexArray(0);
         
-        std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
+        // std::cout << (blinn ? "Blinn-Phong" : "Phong") << std::endl;
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -391,15 +413,16 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    //camera
+    
+    // camera
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltatime);
+        camera.ProcessKeyboard(FORWARD, deltatime, cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltatime);
+        camera.ProcessKeyboard(BACKWARD, deltatime, cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltatime);
+        camera.ProcessKeyboard(LEFT, deltatime, cameraSpeed);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltatime);
+        camera.ProcessKeyboard(RIGHT, deltatime, cameraSpeed);
 
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         sunAngle += 0.01f;
@@ -563,7 +586,6 @@ void sphere_atmos(double radius, int Lats, int Longs)
             tri_idx++;
         }
     }
-    std::cout << tri_idx;
 }
 
 
